@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lab Demo Controller</title>
+    <link rel="stylesheet" href="./styles.css" onload="console.log('CSS loaded successfully')" onerror="console.error('Failed to load CSS file')">
+    <!-- Temporary test style to verify CSS loading -->
+    <style>
+        /* Test selector to verify CSS is working */
+        body::after {
+            content: '';
+            display: none;
+        }
+    </style>
+    <script>
+        // Verify CSS loading
+        window.addEventListener('load', function() {
+            if (document.styleSheets.length > 0) {
+                console.log('CSS loaded successfully');
+            } else {
+                console.error('No stylesheets found!');
+            }
+        });
+    </script>
+</head>
+<body class="peer-mode">
+    <!-- Connection Status Indicator -->
+    <div class="connection-indicator" id="connectionIndicator"></div>
+    
+    <!-- Mode/Screen Panel - Hidden by default -->
+    <div class="mode-panel" id="modePanel">
+        <div class="mode-selector">
+            <button class="mode-btn" id="seedBtn">Seed</button>
+            <button class="mode-btn active" id="peerBtn">Peer</button>
+            <button class="mode-btn admin" id="adminBtn">Admin</button>
+        </div>
+        <div class="screen-input" id="screenInput">
+            <span>Screen:</span>
+            <input type="number" id="screenNumberInput" min="1" max="99" placeholder="1">
+            <button id="registerBtn">Set</button>
+        </div>
+    </div>
+    
+    <!-- Navigation Bar for Seed Mode -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">AI Lab Controller</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="presets">Presets</button>
+                <button class="nav-tab" data-tab="screens">Screen Control</button>
+            </div>
+            <div class="nav-stats">
+                <div class="nav-stat">
+                    <span class="nav-stat-number" id="connectedPeers">0</span>
+                    <span>Peers</span>
+                </div>
+                <div class="nav-stat">
+                    <span class="nav-stat-number" id="registeredScreens">0</span>
+                    <span>Screens</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Peer Mode Display -->
+    <div class="peer-display active" id="peerDisplay">
+        <div class="demo-showcase">
+            <div id="demoContent" class="waiting-state">
+                <div class="demo-content" id="demoCard">
+                    <div class="demo-title" id="demoTitle">AI Lab Demo System</div>
+                    <div class="demo-description" id="demoDescription">Ready to showcase intelligent solutions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Registration Overlay -->
+    <div class="overlay hidden" id="registrationOverlay"></div>
+    <div class="registration-panel hidden" id="registrationPanel">
+        <h3>Screen Registration Required</h3>
+        <p>Please register this device with a screen number to receive targeted demos.</p>
+        <div style="margin: 20px 0;">
+            <input type="number" id="modalScreenInput" min="1" max="99" placeholder="Enter screen number" style="width: 150px; margin-right: 10px;">
+            <button class="btn btn-primary" id="modalRegisterBtn">Register</button>
+        </div>
+        <button class="btn btn-secondary" id="skipRegistration">Skip for now</button>
+    </div>
+    
+    <!-- Seed Mode Content -->
+    <div class="seed-content" id="seedContent">
+        <!-- Presets Tab -->
+        <div class="tab-content active" id="presetsTab">
+            <div class="preset-grid" id="presetGrid">
+                <!-- Presets will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Screen Control Tab -->
+        <div class="tab-content" id="screensTab">
+            <div class="screen-grid" id="screenGrid">
+                <!-- Screen cards will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Admin Mode Content -->
+    <div class="admin-content" id="adminContent">
+        <div class="admin-section">
+            <h3>Preset Management</h3>
+            <div class="form-group">
+                <label>Preset Name:</label>
+                <input type="text" id="newPresetName" placeholder="e.g., Healthcare Suite, Client Demo A">
+            </div>
+            <div class="form-group">
+                <label>Select Demos:</label>
+                <div class="demo-selector" id="demoSelector">
+                    <!-- Demo checkboxes will be populated here -->
+                </div>
+            </div>
+            <button class="btn btn-primary" id="createPresetBtn">Create Preset</button>
+        </div>
+        
+        <div class="admin-section">
+            <h3>Demo Management</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <div class="form-group">
+                        <label>Demo Title:</label>
+                        <input type="text" id="newDemoTitle" placeholder="e.g., Patient Data Analysis">
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea id="newDemoDescription" placeholder="Brief description of the demo" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>URL:</label>
+                        <input type="text" id="newDemoUrl" placeholder="https://example.com/demo">
+                    </div>
+                    <button class="btn btn-primary" id="createDemoBtn">Create Demo</button>
+                </div>
+                <div>
+                    <h4 style="color: #FD5108; margin-bottom: 15px;">Existing Demos</h4>
+                    <div id="demoList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Demo list will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-section">
+            <h3>System Settings</h3>
+            <button class="btn btn-secondary" id="exportBtn">Export Configuration</button>
+            <button class="btn btn-secondary" id="importBtn">Import Configuration</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json">
+            <button class="btn btn-danger" id="resetBtn">Reset All Data</button>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>
