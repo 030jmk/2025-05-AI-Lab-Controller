@@ -293,20 +293,21 @@ function switchMode(mode) {
         seedBtn.classList.add('active');
         navbar.classList.add('active');
         seedContent.classList.add('active');
+        document.querySelector('.nav-tab[data-tab="presets"]').classList.add('active');
         populatePresets();
         screenInput.style.display = 'none';
     } else if (mode === 'peer') {
         peerBtn.classList.add('active');
         peerDisplay.classList.add('active');
         screenInput.style.display = 'flex';
-        
-        // Show registration panel if not registered
         if (!screenNumber) {
             showRegistrationPanel();
         }
     } else if (mode === 'admin') {
         adminBtn.classList.add('active');
+        navbar.classList.add('active');
         adminContent.classList.add('active');
+        adminContent.style.display = 'block'; // Force display block
         populateAdminPanel();
         screenInput.style.display = 'none';
     }
@@ -432,6 +433,9 @@ function displayIndividualDemo(demo) {
 }
 
 function populatePresets() {
+    // Clean up any existing overlays first
+    cleanupOverlays();
+    
     const presetGrid = document.getElementById('presetGrid');
     if (!presetGrid) return;
     
@@ -443,12 +447,150 @@ function populatePresets() {
         card.innerHTML = `
             <h3>${preset.name}</h3>
             <div class="demo-count">${preset.demos.length} demos</div>
+            <button class="preset-edit-btn">Edit</button>
         `;
-        card.addEventListener('click', function() {
-            debugLog('Preset card clicked: ' + preset.name);
-            selectPreset(id);
+        
+        // Click on card selects preset
+        card.addEventListener('click', function(e) {
+            if (!e.target.matches('.preset-edit-btn')) {
+                debugLog('Preset card clicked: ' + preset.name);
+                selectPreset(id);
+            }
         });
+        
+        // Edit button opens edit panel
+        const editBtn = card.querySelector('.preset-edit-btn');
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openPresetEditor(id);
+        });
+        
         presetGrid.appendChild(card);
+    });
+}
+
+function openPresetEditor(presetId) {
+    const preset = presets[presetId];
+    if (!preset) return;
+    
+    // Create edit panel
+    const panel = document.createElement('div');
+    panel.className = 'preset-edit-panel';
+    panel.innerHTML = `
+        <h3>Edit Preset: ${preset.name}</h3>
+        <div class="form-group">
+            <label>Preset Name:</label>
+            <input type="text" id="editPresetName" value="${preset.name}">
+        </div>
+        <div class="form-group">
+            <label>Assigned Demos:</label>
+            <div class="demo-selector" id="editDemoSelector"></div>
+        </div>
+        <button class="btn btn-primary" id="savePresetBtn">Save Changes</button>
+        <button class="btn btn-danger" id="deletePresetBtn">Delete Preset</button>
+        <button class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+    `;
+    
+    // Add overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(panel);
+    
+    // Populate demo selector
+    const demoSelector = panel.querySelector('#editDemoSelector');
+    Object.entries(demos).forEach(([demoId, demo]) => {
+        const isAssigned = preset.demos.some(d => 
+            (typeof d === 'string' && d === demoId) || 
+            (typeof d === 'object' && d.demoId === demoId)
+        );
+        const assignedScreen = preset.demos.find(d => 
+            typeof d === 'object' && d.demoId === demoId
+        )?.screenNumber || '';
+        
+        const div = document.createElement('div');
+        div.className = 'demo-checkbox';
+        div.innerHTML = `
+            <input type="checkbox" value="${demoId}" id="edit-demo-${demoId}" ${isAssigned ? 'checked' : ''}>
+            <label for="edit-demo-${demoId}">${demo.title}</label>
+            <input type="number" class="screen-assignment" placeholder="Screen #" min="1" max="99" value="${assignedScreen}">
+        `;
+        demoSelector.appendChild(div);
+    });
+    
+    // Add event listeners
+    panel.querySelector('#savePresetBtn').addEventListener('click', () => {
+        savePresetChanges(presetId, panel);
+    });
+    
+    panel.querySelector('#deletePresetBtn').addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete the preset "${preset.name}"?`)) {
+            delete presets[presetId];
+            saveData();
+            populatePresets();
+            closeEditor(panel, overlay);
+        }
+    });
+    
+    panel.querySelector('#cancelEditBtn').addEventListener('click', () => {
+        closeEditor(panel, overlay);
+    });
+}
+
+function savePresetChanges(presetId, panel) {
+    const newName = panel.querySelector('#editPresetName').value.trim();
+    if (!newName) {
+        alert('Please enter a preset name');
+        return;
+    }
+    
+    // Collect demos with their assigned screens
+    const demoAssignments = [];
+    panel.querySelectorAll('#editDemoSelector input[type="checkbox"]:checked').forEach(cb => {
+        const demoId = cb.value;
+        const screenInput = cb.parentElement.querySelector('.screen-assignment');
+        const screenNumber = screenInput && screenInput.value ? parseInt(screenInput.value) : null;
+        
+        demoAssignments.push({
+            demoId: demoId,
+            screenNumber: screenNumber
+        });
+    });
+    
+    if (demoAssignments.length === 0) {
+        alert('Please select at least one demo');
+        return;
+    }
+    
+    // Update preset
+    presets[presetId] = {
+        name: newName,
+        demos: demoAssignments
+    };
+    
+    saveData();
+    populatePresets();
+    closeEditor(panel, document.querySelector('.overlay'));
+}
+
+function closeEditor(panel, overlay) {
+    if (panel && panel.parentNode) {
+        panel.remove();
+    }
+    if (overlay && overlay.parentNode) {
+        overlay.remove();
+    }
+    // Clean up any other overlays that might be stuck
+    cleanupOverlays();
+}
+
+function cleanupOverlays() {
+    // Remove any orphaned overlays and edit panels
+    document.querySelectorAll('.overlay, .preset-edit-panel').forEach(el => {
+        if (el && el.parentNode) {
+            el.remove();
+        }
     });
 }
 
