@@ -16,6 +16,7 @@ let registeredScreens = 0;
 let connectedScreensList = new Map();
 let selectedPresetId = null;
 let modePanelTimeout = null;
+let reconnectTimeout = null;
 
 // Data storage
 let presets = JSON.parse(localStorage.getItem('labPresets')) || getDefaultPresets();
@@ -147,6 +148,12 @@ function hideModePanel() {
 
 // WebSocket connection management
 function connectWebSocket() {
+    // Clear any existing reconnect timeout
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+    
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
     
@@ -191,7 +198,10 @@ function connectWebSocket() {
             if (connectionAttempts < maxReconnectAttempts) {
                 connectionAttempts++;
                 debugLog(`Reconnection attempt ${connectionAttempts}/${maxReconnectAttempts}`);
-                setTimeout(connectWebSocket, 2000);
+                reconnectTimeout = setTimeout(connectWebSocket, 2000);
+            } else {
+                debugLog('Max reconnection attempts reached');
+                showReconnectButton();
             }
         };
         
@@ -204,6 +214,17 @@ function connectWebSocket() {
         console.error('Failed to create WebSocket connection:', error);
         updateConnectionStatus(false);
     }
+}
+
+function showReconnectButton() {
+    // Add reconnect functionality to connection indicator
+    connectionIndicator.title = 'Click to reconnect';
+    connectionIndicator.style.cursor = 'pointer';
+    connectionIndicator.onclick = function() {
+        debugLog('Manual reconnection requested');
+        connectionAttempts = 0;
+        connectWebSocket();
+    };
 }
 
 function sendMessage(message) {
@@ -266,8 +287,11 @@ function handleServerMessage(data) {
 function updateConnectionStatus(connected) {
     if (connected) {
         connectionIndicator.classList.add('connected');
+        connectionIndicator.title = 'Connected';
+        connectionIndicator.onclick = null; // Remove reconnect handler
     } else {
         connectionIndicator.classList.remove('connected');
+        connectionIndicator.title = 'Disconnected';
     }
 }
 
@@ -344,14 +368,20 @@ function selectPreset(presetId) {
     debugLog('Selecting preset: ' + preset.name);
     selectedPresetId = presetId;
     
-    // Map demos to their full data
+    // Handle both old format (array of strings) and new format (array of objects)
     const preparedDemos = preset.demos.map(demo => {
-        const demoData = demos[demo.demoId];
-        if (!demoData) return null;
-        return {
-            ...demoData,
-            screenNumber: demo.screenNumber
-        };
+        if (typeof demo === 'string') {
+            // Old format: just demo ID
+            return demos[demo];
+        } else {
+            // New format: object with demoId and screenNumber
+            const demoData = demos[demo.demoId];
+            if (!demoData) return null;
+            return {
+                ...demoData,
+                screenNumber: demo.screenNumber
+            };
+        }
     }).filter(Boolean);
 
     // Send to server
@@ -473,6 +503,9 @@ function openPresetEditor(presetId) {
     const preset = presets[presetId];
     if (!preset) return;
     
+    // Clean up any existing panels first
+    cleanupOverlays();
+    
     // Create edit panel
     const panel = document.createElement('div');
     panel.className = 'preset-edit-panel';
@@ -494,6 +527,7 @@ function openPresetEditor(presetId) {
     // Add overlay
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
+    overlay.id = 'presetEditOverlay';
     
     document.body.appendChild(overlay);
     document.body.appendChild(panel);
@@ -536,6 +570,11 @@ function openPresetEditor(presetId) {
     panel.querySelector('#cancelEditBtn').addEventListener('click', () => {
         closeEditor(panel, overlay);
     });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', () => {
+        closeEditor(panel, overlay);
+    });
 }
 
 function savePresetChanges(presetId, panel) {
@@ -571,7 +610,7 @@ function savePresetChanges(presetId, panel) {
     
     saveData();
     populatePresets();
-    closeEditor(panel, document.querySelector('.overlay'));
+    closeEditor(panel, document.querySelector('#presetEditOverlay'));
 }
 
 function closeEditor(panel, overlay) {
@@ -581,8 +620,6 @@ function closeEditor(panel, overlay) {
     if (overlay && overlay.parentNode) {
         overlay.remove();
     }
-    // Clean up any other overlays that might be stuck
-    cleanupOverlays();
 }
 
 function cleanupOverlays() {
@@ -600,9 +637,22 @@ function updateScreenGrid() {
     
     screenGrid.innerHTML = '';
     
+    // Group clients by screen number
+    const screenGroups = new Map();
     connectedScreensList.forEach((screenInfo, screenNumber) => {
+        if (!screenGroups.has(screenNumber)) {
+            screenGroups.set(screenNumber, { online: false, clients: [] });
+        }
+        screenGroups.get(screenNumber).clients.push(screenInfo);
+        if (screenInfo.online) {
+            screenGroups.get(screenNumber).online = true;
+        }
+    });
+    
+    // Create cards for each screen
+    screenGroups.forEach((screenData, screenNumber) => {
         const card = document.createElement('div');
-        card.className = `screen-card ${screenInfo.online ? 'online' : 'offline'}`;
+        card.className = `screen-card ${screenData.online ? 'online' : 'offline'}`;
         
         const select = document.createElement('select');
         select.className = 'demo-select';
@@ -617,6 +667,7 @@ function updateScreenGrid() {
         const sendBtn = document.createElement('button');
         sendBtn.className = 'send-btn';
         sendBtn.textContent = 'Send Demo';
+        sendBtn.disabled = !screenData.online;
         sendBtn.addEventListener('click', function() {
             const selectedDemo = select.value;
             if (selectedDemo) {
@@ -628,8 +679,9 @@ function updateScreenGrid() {
         card.innerHTML = `
             <div class="screen-header">
                 <div class="screen-number">Screen ${screenNumber}</div>
-                <div class="screen-status ${screenInfo.online ? 'online' : 'offline'}">
-                    ${screenInfo.online ? 'Online' : 'Offline'}
+                <div class="screen-status ${screenData.online ? 'online' : 'offline'}">
+                    ${screenData.online ? 'Online' : 'Offline'}
+                    ${screenData.clients.length > 1 ? ` (${screenData.clients.length} clients)` : ''}
                 </div>
             </div>
         `;
@@ -696,6 +748,7 @@ function populateDemoList() {
             <div class="list-item-info">
                 <h4>${demo.title}</h4>
                 <p>${demo.description}</p>
+                <small style="color: #999;">${demo.url}</small>
             </div>
             <div class="list-item-actions"></div>
         `;
@@ -748,7 +801,11 @@ function createPreset() {
     
     saveData();
     nameInput.value = '';
-    document.querySelectorAll('#demoSelector input').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#demoSelector input').forEach(cb => {
+        cb.checked = false;
+        const screenInput = cb.parentElement.querySelector('.screen-assignment');
+        if (screenInput) screenInput.value = '';
+    });
     
     debugLog('Created preset: ' + name);
     alert(`Preset "${name}" created successfully!`);
@@ -770,7 +827,22 @@ function createDemo() {
         return;
     }
     
+    // Basic URL validation
+    try {
+        new URL(url);
+    } catch (e) {
+        alert('Please enter a valid URL');
+        return;
+    }
+    
     const id = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    
+    // Check if demo already exists
+    if (demos[id]) {
+        alert('A demo with this title already exists. Please choose a different title.');
+        return;
+    }
+    
     demos[id] = {
         title: title,
         description: description,
@@ -791,9 +863,15 @@ function deleteDemo(id) {
     if (demos[id] && confirm(`Are you sure you want to delete the demo "${demos[id].title}"?`)) {
         delete demos[id];
         
-        // Remove from presets
+        // Remove from presets and clean up
         Object.keys(presets).forEach(presetId => {
-            presets[presetId].demos = presets[presetId].demos.filter(demoId => demoId !== id);
+            presets[presetId].demos = presets[presetId].demos.filter(demo => {
+                if (typeof demo === 'string') {
+                    return demo !== id;
+                } else {
+                    return demo.demoId !== id;
+                }
+            });
         });
         
         saveData();
@@ -806,14 +884,15 @@ function exportConfiguration() {
     const config = {
         presets: presets,
         demos: demos,
-        exportDate: new Date().toISOString()
+        exportDate: new Date().toISOString(),
+        version: '1.0'
     };
     
     const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ai-lab-config.json';
+    a.download = `ai-lab-config-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     debugLog('Configuration exported');
@@ -855,7 +934,12 @@ function setupEventListeners() {
     connectionIndicator.addEventListener('click', function(e) {
         e.stopPropagation();
         debugLog('Connection indicator clicked');
-        if (modePanel.classList.contains('visible')) {
+        if (!connectionIndicator.classList.contains('connected')) {
+            // Try to reconnect if disconnected
+            debugLog('Attempting manual reconnection');
+            connectionAttempts = 0;
+            connectWebSocket();
+        } else if (modePanel.classList.contains('visible')) {
             hideModePanel();
         } else {
             showModePanel();
@@ -909,7 +993,12 @@ function setupEventListeners() {
         registerBtn.addEventListener('click', function() {
             const input = document.getElementById('screenNumberInput');
             if (input && input.value) {
-                registerScreen(parseInt(input.value));
+                const num = parseInt(input.value);
+                if (num > 0 && num <= 99) {
+                    registerScreen(num);
+                } else {
+                    alert('Please enter a screen number between 1 and 99');
+                }
             }
         });
     }
@@ -918,7 +1007,12 @@ function setupEventListeners() {
         modalRegisterBtn.addEventListener('click', function() {
             const input = document.getElementById('modalScreenInput');
             if (input && input.value) {
-                registerScreen(parseInt(input.value));
+                const num = parseInt(input.value);
+                if (num > 0 && num <= 99) {
+                    registerScreen(num);
+                } else {
+                    alert('Please enter a screen number between 1 and 99');
+                }
             }
         });
     }
@@ -929,21 +1023,52 @@ function setupEventListeners() {
         });
     }
     
+    // Tab switching functionality
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // Special handling for admin tab
+            if (tabId === 'admin') {
+                switchMode('admin');
+                return;
+            }
+            
+            // For other tabs, just switch the content
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const selectedContent = document.getElementById(tabId + 'Tab');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+            
+            // Update screen grid when switching to screens tab
+            if (tabId === 'screens') {
+                updateScreenGrid();
+            }
+            
+            // Update demo selector when switching to create tab
+            if (tabId === 'create') {
+                populateCreateTabDemoSelector();
+            }
+        });
+    });
+    
+    // Setup create tab event listeners
+    setupCreateTabListeners();
+    
     // Admin panel buttons
-    const createPresetBtn = document.getElementById('createPresetBtn');
-    const createDemoBtn = document.getElementById('createDemoBtn');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const resetBtn = document.getElementById('resetBtn');
     const importFile = document.getElementById('importFile');
-    
-    if (createPresetBtn) {
-        createPresetBtn.addEventListener('click', createPreset);
-    }
-    
-    if (createDemoBtn) {
-        createDemoBtn.addEventListener('click', createDemo);
-    }
     
     if (exportBtn) {
         exportBtn.addEventListener('click', exportConfiguration);
@@ -966,51 +1091,185 @@ function setupEventListeners() {
                     try {
                         const config = JSON.parse(e.target.result);
                         if (config.presets && config.demos) {
-                            presets = config.presets;
-                            demos = config.demos;
-                            saveData();
-                            populateAdminPanel();
-                            alert('Configuration imported successfully!');
-                            debugLog('Configuration imported');
+                            // Validate the data structure
+                            if (validateImportedData(config)) {
+                                presets = config.presets;
+                                demos = config.demos;
+                                saveData();
+                                populateAdminPanel();
+                                populatePresets();
+                                alert('Configuration imported successfully!');
+                                debugLog('Configuration imported');
+                            } else {
+                                throw new Error('Invalid data structure');
+                            }
                         } else {
-                            throw new Error('Invalid configuration file');
+                            throw new Error('Missing presets or demos');
                         }
                     } catch (error) {
                         console.error('Import error:', error);
-                        alert('Failed to import configuration: Invalid file format');
+                        alert('Failed to import configuration: ' + error.message);
                     }
                 };
                 reader.readAsText(file);
             }
         });
     }
+}
+
+function setupCreateTabListeners() {
+    // Get elements from create tab (they have different IDs in the HTML)
+    const createTab = document.getElementById('createTab');
+    if (!createTab) return;
     
-    // Add tab switching functionality
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            // Remove active class from all tabs
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
-            this.classList.add('active');
+    // Create Demo button in create tab
+    const createDemoBtn = createTab.querySelector('#createDemoBtn');
+    if (createDemoBtn) {
+        createDemoBtn.addEventListener('click', function() {
+            const titleInput = createTab.querySelector('#newDemoTitle');
+            const descriptionInput = createTab.querySelector('#newDemoDescription');
+            const urlInput = createTab.querySelector('#newDemoUrl');
             
-            // Hide all tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
+            if (!titleInput || !descriptionInput || !urlInput) return;
+            
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            const url = urlInput.value.trim();
+            
+            if (!title || !description || !url) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Basic URL validation
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            const id = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            
+            if (demos[id]) {
+                alert('A demo with this title already exists. Please choose a different title.');
+                return;
+            }
+            
+            demos[id] = {
+                title: title,
+                description: description,
+                url: url
+            };
+            
+            saveData();
+            populateCreateTabDemoSelector();
+            titleInput.value = '';
+            descriptionInput.value = '';
+            urlInput.value = '';
+            
+            debugLog('Created demo: ' + title);
+            alert(`Demo "${title}" created successfully!`);
+        });
+    }
+    
+    // Create Preset button in create tab
+    const createPresetBtn = createTab.querySelector('#createPresetBtn');
+    if (createPresetBtn) {
+        createPresetBtn.addEventListener('click', function() {
+            const nameInput = createTab.querySelector('#newPresetName');
+            const selector = createTab.querySelector('#demoSelector');
+            
+            if (!nameInput || !selector) return;
+            
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('Please enter a preset name');
+                return;
+            }
+            
+            // Collect demos with their assigned screens
+            const demoAssignments = [];
+            selector.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const demoId = cb.value;
+                const screenInput = cb.parentElement.querySelector('.screen-assignment');
+                const screenNumber = screenInput && screenInput.value ? parseInt(screenInput.value) : null;
+                
+                demoAssignments.push({
+                    demoId: demoId,
+                    screenNumber: screenNumber
+                });
             });
             
-            // Show selected tab content
-            const tabId = this.getAttribute('data-tab');
-            const selectedContent = document.getElementById(tabId + 'Tab');
-            if (selectedContent) {
-                selectedContent.classList.add('active');
+            if (demoAssignments.length === 0) {
+                alert('Please select at least one demo');
+                return;
             }
             
-            // Update screen grid when switching to screens tab
-            if (this.getAttribute('data-tab') === 'screens') {
-                updateScreenGrid();
-            }
+            const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            presets[id] = {
+                name: name,
+                demos: demoAssignments
+            };
+            
+            saveData();
+            nameInput.value = '';
+            selector.querySelectorAll('input').forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            debugLog('Created preset: ' + name);
+            alert(`Preset "${name}" created successfully!`);
         });
+    }
+}
+
+function populateCreateTabDemoSelector() {
+    const createTab = document.getElementById('createTab');
+    if (!createTab) return;
+    
+    const selector = createTab.querySelector('#demoSelector');
+    if (!selector) return;
+    
+    selector.innerHTML = '';
+    
+    Object.entries(demos).forEach(([id, demo]) => {
+        const div = document.createElement('div');
+        div.className = 'demo-checkbox';
+        div.innerHTML = `
+            <input type="checkbox" value="${id}" id="create-demo-${id}">
+            <label for="create-demo-${id}">${demo.title}</label>
+            <input type="number" class="screen-assignment" placeholder="Screen #" min="1" max="99">
+        `;
+        selector.appendChild(div);
     });
+}
+
+function validateImportedData(config) {
+    // Basic validation of imported data structure
+    try {
+        // Check presets
+        for (const [id, preset] of Object.entries(config.presets)) {
+            if (!preset.name || !Array.isArray(preset.demos)) {
+                return false;
+            }
+        }
+        
+        // Check demos
+        for (const [id, demo] of Object.entries(config.demos)) {
+            if (!demo.title || !demo.description || !demo.url) {
+                return false;
+            }
+        }
+        
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 // Initialize function to set up everything
@@ -1026,6 +1285,13 @@ function init() {
     // Populate initial data
     populatePresets();
     populateAdminPanel();
+    
+    // Set up periodic connection check
+    setInterval(() => {
+        if (ws && ws.readyState === WebSocket.CLOSED) {
+            updateConnectionStatus(false);
+        }
+    }, 5000);
 }
 
 // Run initialization after DOM content is loaded
@@ -1052,3 +1318,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize application
     init();
 });
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && ws && ws.readyState === WebSocket.CLOSED) {
+        debugLog('Page became visible, checking connection');
+        connectionAttempts = 0;
+        connectWebSocket();
+    }
+});
+        
