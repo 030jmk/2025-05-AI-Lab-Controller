@@ -298,48 +298,48 @@ function updateConnectionStatus(connected) {
 function switchMode(mode) {
     debugLog('Switching to mode: ' + mode);
     currentMode = mode;
-    
-    // Update body class for CSS styling
     document.body.className = mode + '-mode';
-    
-    // Update UI
     document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-    
-    // Hide all content areas
     navbar.classList.remove('active');
     seedContent.classList.remove('active');
     peerDisplay.classList.remove('active');
     adminContent.classList.remove('active');
-    
+    adminContent.style.display = 'none';
     const screenInput = document.getElementById('screenInput');
-    
     if (mode === 'seed') {
         seedBtn.classList.add('active');
         navbar.classList.add('active');
         seedContent.classList.add('active');
+        // Default to presets tab
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
         document.querySelector('.nav-tab[data-tab="presets"]').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById('presetsTab').classList.add('active');
         populatePresets();
         screenInput.style.display = 'none';
+        hideRegistrationPanel();
     } else if (mode === 'peer') {
         peerBtn.classList.add('active');
         peerDisplay.classList.add('active');
         screenInput.style.display = 'flex';
         if (!screenNumber) {
             showRegistrationPanel();
+        } else {
+            hideRegistrationPanel();
         }
     } else if (mode === 'admin') {
+        // "Admin mode" is a full mode switch, not just a tab
         adminBtn.classList.add('active');
         navbar.classList.add('active');
         adminContent.classList.add('active');
-        adminContent.style.display = 'block'; // Force display block
+        adminContent.style.display = 'block';
         populateAdminPanel();
         screenInput.style.display = 'none';
+        hideRegistrationPanel();
     }
-    
-    // Hide mode panel after switching
     hideModePanel();
-    
-    // Notify server of mode change
     sendMessage({
         type: 'setMode',
         mode: mode,
@@ -965,19 +965,51 @@ function setupEventListeners() {
         }
     });
     
-    // Mode buttons
+    // Tab switching functionality
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // Hide admin content by default
+            adminContent.classList.remove('active');
+            adminContent.style.display = 'none';
+            // Show selected tab content or admin content
+            if (tabId === 'admin') {
+                adminContent.classList.add('active');
+                adminContent.style.display = 'block';
+                populateAdminPanel();
+            } else {
+                const selectedContent = document.getElementById(tabId + 'Tab');
+                if (selectedContent) {
+                    selectedContent.classList.add('active');
+                }
+                if (tabId === 'screens') {
+                    updateScreenGrid();
+                }
+                if (tabId === 'presets') {
+                    populatePresets();
+                }
+            }
+        });
+    });
+    
+    // Mode buttons (these still call switchMode)
     seedBtn.addEventListener('click', function(e) {
         e.preventDefault();
         debugLog('Seed button clicked');
         switchMode('seed');
     });
-    
     peerBtn.addEventListener('click', function(e) {
         e.preventDefault();
         debugLog('Peer button clicked');
         switchMode('peer');
     });
-    
     adminBtn.addEventListener('click', function(e) {
         e.preventDefault();
         debugLog('Admin button clicked');
@@ -1023,65 +1055,29 @@ function setupEventListeners() {
         });
     }
     
-    // Tab switching functionality
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            
-            // Special handling for admin tab
-            if (tabId === 'admin') {
-                switchMode('admin');
-                return;
-            }
-            
-            // For other tabs, just switch the content
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Hide all tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Show selected tab content
-            const selectedContent = document.getElementById(tabId + 'Tab');
-            if (selectedContent) {
-                selectedContent.classList.add('active');
-            }
-            
-            // Update screen grid when switching to screens tab
-            if (tabId === 'screens') {
-                updateScreenGrid();
-            }
-            
-            // Update demo selector when switching to create tab
-            if (tabId === 'create') {
-                populateCreateTabDemoSelector();
-            }
-        });
-    });
-    
-    // Setup create tab event listeners
-    setupCreateTabListeners();
-    
-    // Admin panel buttons
+    // Admin panel buttons (Create Demo/Preset, Export/Import/Reset)
+    const createPresetBtn = document.getElementById('createPresetBtn');
+    const createDemoBtn = document.getElementById('createDemoBtn');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const resetBtn = document.getElementById('resetBtn');
     const importFile = document.getElementById('importFile');
     
+    if (createPresetBtn) {
+        createPresetBtn.addEventListener('click', createPreset);
+    }
+    if (createDemoBtn) {
+        createDemoBtn.addEventListener('click', createDemo);
+    }
     if (exportBtn) {
         exportBtn.addEventListener('click', exportConfiguration);
     }
-    
     if (importBtn) {
         importBtn.addEventListener('click', importConfiguration);
     }
-    
     if (resetBtn) {
         resetBtn.addEventListener('click', resetAllData);
     }
-    
     if (importFile) {
         importFile.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -1091,7 +1087,6 @@ function setupEventListeners() {
                     try {
                         const config = JSON.parse(e.target.result);
                         if (config.presets && config.demos) {
-                            // Validate the data structure
                             if (validateImportedData(config)) {
                                 presets = config.presets;
                                 demos = config.demos;
@@ -1115,138 +1110,6 @@ function setupEventListeners() {
             }
         });
     }
-}
-
-function setupCreateTabListeners() {
-    // Get elements from create tab (they have different IDs in the HTML)
-    const createTab = document.getElementById('createTab');
-    if (!createTab) return;
-    
-    // Create Demo button in create tab
-    const createDemoBtn = createTab.querySelector('#createDemoBtn');
-    if (createDemoBtn) {
-        createDemoBtn.addEventListener('click', function() {
-            const titleInput = createTab.querySelector('#newDemoTitle');
-            const descriptionInput = createTab.querySelector('#newDemoDescription');
-            const urlInput = createTab.querySelector('#newDemoUrl');
-            
-            if (!titleInput || !descriptionInput || !urlInput) return;
-            
-            const title = titleInput.value.trim();
-            const description = descriptionInput.value.trim();
-            const url = urlInput.value.trim();
-            
-            if (!title || !description || !url) {
-                alert('Please fill in all fields');
-                return;
-            }
-            
-            // Basic URL validation
-            try {
-                new URL(url);
-            } catch (e) {
-                alert('Please enter a valid URL');
-                return;
-            }
-            
-            const id = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-            
-            if (demos[id]) {
-                alert('A demo with this title already exists. Please choose a different title.');
-                return;
-            }
-            
-            demos[id] = {
-                title: title,
-                description: description,
-                url: url
-            };
-            
-            saveData();
-            populateCreateTabDemoSelector();
-            titleInput.value = '';
-            descriptionInput.value = '';
-            urlInput.value = '';
-            
-            debugLog('Created demo: ' + title);
-            alert(`Demo "${title}" created successfully!`);
-        });
-    }
-    
-    // Create Preset button in create tab
-    const createPresetBtn = createTab.querySelector('#createPresetBtn');
-    if (createPresetBtn) {
-        createPresetBtn.addEventListener('click', function() {
-            const nameInput = createTab.querySelector('#newPresetName');
-            const selector = createTab.querySelector('#demoSelector');
-            
-            if (!nameInput || !selector) return;
-            
-            const name = nameInput.value.trim();
-            if (!name) {
-                alert('Please enter a preset name');
-                return;
-            }
-            
-            // Collect demos with their assigned screens
-            const demoAssignments = [];
-            selector.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-                const demoId = cb.value;
-                const screenInput = cb.parentElement.querySelector('.screen-assignment');
-                const screenNumber = screenInput && screenInput.value ? parseInt(screenInput.value) : null;
-                
-                demoAssignments.push({
-                    demoId: demoId,
-                    screenNumber: screenNumber
-                });
-            });
-            
-            if (demoAssignments.length === 0) {
-                alert('Please select at least one demo');
-                return;
-            }
-            
-            const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-            presets[id] = {
-                name: name,
-                demos: demoAssignments
-            };
-            
-            saveData();
-            nameInput.value = '';
-            selector.querySelectorAll('input').forEach(input => {
-                if (input.type === 'checkbox') {
-                    input.checked = false;
-                } else {
-                    input.value = '';
-                }
-            });
-            
-            debugLog('Created preset: ' + name);
-            alert(`Preset "${name}" created successfully!`);
-        });
-    }
-}
-
-function populateCreateTabDemoSelector() {
-    const createTab = document.getElementById('createTab');
-    if (!createTab) return;
-    
-    const selector = createTab.querySelector('#demoSelector');
-    if (!selector) return;
-    
-    selector.innerHTML = '';
-    
-    Object.entries(demos).forEach(([id, demo]) => {
-        const div = document.createElement('div');
-        div.className = 'demo-checkbox';
-        div.innerHTML = `
-            <input type="checkbox" value="${id}" id="create-demo-${id}">
-            <label for="create-demo-${id}">${demo.title}</label>
-            <input type="number" class="screen-assignment" placeholder="Screen #" min="1" max="99">
-        `;
-        selector.appendChild(div);
-    });
 }
 
 function validateImportedData(config) {
@@ -1327,4 +1190,3 @@ document.addEventListener('visibilitychange', function() {
         connectWebSocket();
     }
 });
-        

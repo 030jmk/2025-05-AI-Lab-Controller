@@ -49,7 +49,6 @@
             <div class="nav-tabs">
                 <button class="nav-tab active" data-tab="presets">Presets</button>
                 <button class="nav-tab" data-tab="screens">Screen Control</button>
-                <button class="nav-tab" data-tab="create">Create</button>
                 <button class="nav-tab admin" data-tab="admin">Admin</button>
             </div>
             <div class="nav-stats">
@@ -104,47 +103,13 @@
                 <!-- Screen cards will be populated here -->
             </div>
         </div>
-
-        <!-- Create Tab -->
-        <div class="tab-content" id="createTab">
-            <div class="create-section">
-                <h3>Create New Demo</h3>
-                <div class="form-group">
-                    <label>Demo Title:</label>
-                    <input type="text" id="newDemoTitle" placeholder="e.g., Patient Data Analysis">
-                </div>
-                <div class="form-group">
-                    <label>Description:</label>
-                    <textarea id="newDemoDescription" placeholder="Brief description of the demo" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>URL:</label>
-                    <input type="text" id="newDemoUrl" placeholder="https://example.com/demo">
-                </div>
-                <button class="btn btn-primary" id="createDemoBtn">Create Demo</button>
-            </div>
-
-            <div class="create-section">
-                <h3>Create New Preset</h3>
-                <div class="form-group">
-                    <label>Preset Name:</label>
-                    <input type="text" id="newPresetName" placeholder="e.g., Healthcare Suite, Client Demo A">
-                </div>
-                <div class="form-group">
-                    <label>Select Demos:</label>
-                    <div class="demo-selector" id="demoSelector">
-                        <!-- Demo checkboxes will be populated here -->
-                    </div>
-                </div>
-                <button class="btn btn-primary" id="createPresetBtn">Create Preset</button>
-            </div>
-        </div>
     </div>
     
-    <!-- Admin Mode Content -->
+    <!-- Admin Mode Content (now includes create sections) -->
     <div class="admin-content" id="adminContent">
+        <!-- Create Preset Section -->
         <div class="admin-section">
-            <h3>Preset Management</h3>
+            <h3>Create New Preset</h3>
             <div class="form-group">
                 <label>Preset Name:</label>
                 <input type="text" id="newPresetName" placeholder="e.g., Healthcare Suite, Client Demo A">
@@ -157,31 +122,29 @@
             </div>
             <button class="btn btn-primary" id="createPresetBtn">Create Preset</button>
         </div>
-        
+
+        <!-- Create Demo Section -->
+        <div class="admin-section">
+            <h3>Create New Demo</h3>
+            <div class="form-group">
+                <label>Demo Title:</label>
+                <input type="text" id="newDemoTitle" placeholder="e.g., Patient Data Analysis">
+            </div>
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea id="newDemoDescription" placeholder="Brief description of the demo" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>URL:</label>
+                <input type="text" id="newDemoUrl" placeholder="https://example.com/demo">
+            </div>
+            <button class="btn btn-primary" id="createDemoBtn">Create Demo</button>
+        </div>
+
         <div class="admin-section">
             <h3>Demo Management</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <div class="form-group">
-                        <label>Demo Title:</label>
-                        <input type="text" id="newDemoTitle" placeholder="e.g., Patient Data Analysis">
-                    </div>
-                    <div class="form-group">
-                        <label>Description:</label>
-                        <textarea id="newDemoDescription" placeholder="Brief description of the demo" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>URL:</label>
-                        <input type="text" id="newDemoUrl" placeholder="https://example.com/demo">
-                    </div>
-                    <button class="btn btn-primary" id="createDemoBtn">Create Demo</button>
-                </div>
-                <div>
-                    <h4 style="margin-bottom: 15px;">Existing Demos</h4>
-                    <div id="demoList" style="max-height: 300px; overflow-y: auto;">
-                        <!-- Demo list will be populated here -->
-                    </div>
-                </div>
+            <div id="demoList" style="max-height: 500px; overflow-y: auto;">
+                <!-- Demo list will be populated here -->
             </div>
         </div>
         
