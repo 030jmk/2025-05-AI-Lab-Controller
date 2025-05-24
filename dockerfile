@@ -6,12 +6,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies if you have any)
-RUN npm ci
+# Use npm install instead of npm ci for more flexibility
+# We'll use the --production flag to skip devDependencies
+RUN npm install --production
 
 # Copy source files
 COPY . .
-
 
 # Stage 2: Production stage
 FROM node:18-alpine
@@ -24,17 +24,15 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy the installed node_modules from the builder stage
+# This approach means we only install dependencies once
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Copy package files (for reference and for npm scripts if any)
+COPY --chown=nodejs:nodejs package*.json ./
 
-# Copy application files from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app .
-
-# Remove unnecessary files
-RUN rm -rf .git .gitignore README.md
+# Copy application files
+COPY --chown=nodejs:nodejs . .
 
 USER nodejs
 
