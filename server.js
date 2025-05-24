@@ -1,78 +1,28 @@
 const WebSocket = require('ws');
 const http = require('http');
-const fs = require('fs');
+const express = require('express');
 const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+
+// Serve static files
+app.use(express.static(__dirname));
+
+// Add support for Azure's port configuration
+const port = process.env.PORT || 3000;
+
+// Create WebSocket server with path for Azure routing
+const wss = new WebSocket.Server({ 
+    server: server,
+    path: '/ws' // Add explicit path for Azure routing
+});
 
 // Track connected clients with screen numbers
 const clients = new Map();
 const registeredScreens = new Map(); // screenNumber -> Set of clientIds
 let seedClient = null;
 let currentPreset = null;
-
-// Create HTTP server to serve static files
-const server = http.createServer((req, res) => {
-    // Extract screen number from URL path
-    const match = req.url.match(/^\/(\d+)$/);
-    if (match) {
-        // Serve index.html with injected screen number for numbered routes
-        const screenNumber = parseInt(match[1]);
-        const indexPath = path.join(__dirname, 'index.html');
-        
-        fs.readFile(indexPath, 'utf8', (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Error loading index.html');
-                return;
-            }
-            const modifiedHtml = data.replace(
-                '</head>',
-                `<script>window.autoScreenNumber = ${screenNumber};</script></head>`
-            );
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(modifiedHtml);
-        });
-        return;
-    }
-    
-    // Handle root path
-    if (req.url === '/') {
-        const indexPath = path.join(__dirname, 'index.html');
-        fs.readFile(indexPath, (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Error loading index.html');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data);
-        });
-        return;
-    }
-    
-    // Handle other file requests
-    const filePath = path.join(__dirname, req.url);
-    const ext = path.extname(filePath);
-    
-    const contentTypes = {
-        '.html': 'text/html',
-        '.css': 'text/css',
-        '.js': 'text/javascript'
-    };
-    
-    fs.readFile(filePath, (err, data) => {
-        if (err) {
-            res.writeHead(404);
-            res.end('File not found');
-            return;
-        }
-        
-        res.writeHead(200, { 'Content-Type': contentTypes[ext] || 'text/plain' });
-        res.end(data);
-    });
-});
- 
-// Create WebSocket server
-const wss = new WebSocket.Server({ server });
 
 console.log('AI Lab WebSocket Server Starting...');
 
@@ -384,9 +334,8 @@ function generateClientId() {
 }
 
 // Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+server.listen(port, () => {
+    console.log(`Server running on port ${port}`);
     console.log(`WebSocket server ready for connections`);
     console.log('\nUsage:');
     console.log('1. Open http://localhost:3000 in multiple browser windows/tabs');
