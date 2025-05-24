@@ -1,0 +1,175 @@
+{
+  "presets": {
+    "demo-session---alpha": {
+      "name": "Demo Session - Alpha",
+      "demos": [
+        {
+          "demoId": "harvey-legal-assistant",
+          "screenNumber": 5
+        },
+        {
+          "demoId": "factory-intelligence-2-0",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "information-assistant",
+          "screenNumber": 1
+        },
+        {
+          "demoId": "forecast-plus-dashboard",
+          "screenNumber": 2
+        },
+        {
+          "demoId": "ai4business",
+          "screenNumber": 3
+        }
+      ]
+    },
+    "google-demos-2025": {
+      "name": "Google Demos 2025",
+      "demos": [
+        {
+          "demoId": "google-flow",
+          "screenNumber": 2
+        },
+        {
+          "demoId": "google-jules",
+          "screenNumber": null
+        },
+        {
+          "demoId": "google-stitch",
+          "screenNumber": null
+        },
+        {
+          "demoId": "google-arts-culture-national-gallery-mixtape",
+          "screenNumber": 6
+        },
+        {
+          "demoId": "google-food-mood",
+          "screenNumber": 5
+        },
+        {
+          "demoId": "google-little-language-lesson",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "google-illuminate",
+          "screenNumber": 3
+        },
+        {
+          "demoId": "google-notebooklm",
+          "screenNumber": 1
+        }
+      ]
+    }
+  },
+  "demos": {
+    "harvey-legal-assistant": {
+      "title": "Harvey Legal Assistant",
+      "description": "Domain-specific AI for law firms, professional service providers, and the Fortune 500.",
+      "url": "https://app.harvey.ai/assistant"
+    },
+    "factory-intelligence-2-0": {
+      "title": "Factory Intelligence 2.0",
+      "description": "Modular and customisable manufacturing analytics suite",
+      "url": "https://demo.pwcfi.com/"
+    },
+    "factory-intelligence": {
+      "title": "Factory Intelligence",
+      "description": "Modular and customisable manufacturing analytics suite",
+      "url": "https://pwc-fi-prod.azurewebsites.net/"
+    },
+    "information-assistant": {
+      "title": "Information Assistant",
+      "description": "A fully customizable GenAI solution that can be tailored to meet specific customer and functional requirements, delivered via secure servers with adaptable design options.​",
+      "url": "https://pwctrinformationassistant/"
+    },
+    "forecast-plus-dashboard": {
+      "title": "Forecast Plus Dashboard",
+      "description": "The ideal tool for your AI-based forecasting along the entire value chain. No matter whether you want to use it to forecast your key financial figures, production quantities or personnel requirements.",
+      "url": "https://workbench-eu.pwc.com/shared/ForecastPlusShowcase"
+    },
+    "ai4business": {
+      "title": "AI4Business",
+      "description": "AI solutions and forecasting for any business",
+      "url": "http://10.54.240.71:8502/Data_Analysis"
+    },
+    "genai-explore": {
+      "title": "GenAI Explore",
+      "description": "An internal platform for to share their GenAI best practices, prompts and playlists.",
+      "url": "https://genaiexplore.pwc.com/home"
+    },
+    "project-sophia": {
+      "title": "Project Sophia",
+      "description": "An AI-powered business research canvas where you can ask any business question across every business domain in your organization.",
+      "url": "https://projectsophia.microsoft.com/"
+    },
+    "ai-usecase-compass": {
+      "title": "AI Usecase Compass",
+      "description": "A wide and continuously expanding overview of Applied AI use cases that helps you understand the potential of applied AI and get inspired on how you can boost your business success using it.",
+      "url": "https://pages.pwc.de/applied-ai-compass-app/"
+    },
+    "ai-bias-data-visualization": {
+      "title": "AI Bias Data Visualization",
+      "description": "We often use artificial intelligence (AI) as a way to mitigate bias and streamline our operations. We’re removing the human element from decision making in order to come to a fairer, more accurate result. AI should eliminate any bias from its decisions, right?",
+      "url": "https://raibiasdataviz.azurewebsites.net/"
+    },
+    "copilot-mediaagent": {
+      "title": "CoPilot MediaAgent",
+      "description": "Social Media Analysis Chatbot",
+      "url": "https://copilotstudio.preview.microsoft.com/environments/32956709-9b04-ec12-a2b7-8283b2f1f351/bots/crb66_socialMediaAgent/canvas?__version__=2&enableFileAttachment=true"
+    },
+    "copilot-financial-analysis": {
+      "title": "CoPilot Financial Analysis",
+      "description": "AI-enabled Financial Competitor Analysis",
+      "url": "https://copilotstudio.preview.microsoft.com/environments/32956709-9b04-ec12-a2b7-8283b2f1f351/bots/crb66_rakipAnalizi/canvas?__version__=2&enableFileAttachment=true"
+    },
+    "copilot-balance-sheet-agent": {
+      "title": "CoPilot Balance Sheet Agent",
+      "description": "Chat with your Balance Sheets",
+      "url": "https://unlumvpcopilotbalance.blob.core.windows.net/$web/index.html"
+    },
+    "google-flow": {
+      "title": "Google Flow",
+      "description": "AI-powered filmmaking with Veo 3",
+      "url": "https://labs.google/flow/tv/channel/window-seat/f2KcEcDemybryhAGLMf5?random=true"
+    },
+    "google-jules": {
+      "title": "Google Jules",
+      "description": "An async development agent. Jules tackles bugs, small feature requests, and other software engineering tasks, with direct export to GitHub.",
+      "url": "https://jules.google.com/task"
+    },
+    "google-stitch": {
+      "title": "Google Stitch",
+      "description": "Stitch generates UIs for mobile and web applications, making design ideation fast and easy.",
+      "url": "https://stitch.withgoogle.com/"
+    },
+    "google-arts-culture-national-gallery-mixtape": {
+      "title": "Google Arts&Culture National Gallery Mixtape",
+      "description": "Mix a personalized soundtrack inspired by paintings from the National Gallery with the help of Google AI.",
+      "url": "https://artsandculture.google.com/experiment/iwHPaSXS-zrryg"
+    },
+    "google-food-mood": {
+      "title": "Google Food Mood",
+      "description": "Get inspiration for your next meal and create new recipes mixing influences from two cuisines, generated with the help of Google AI.",
+      "url": "https://artsandculture.google.com/experiment/food-mood/HwHnGalZ3up0EA?hl=en"
+    },
+    "google-little-language-lesson": {
+      "title": "Google Little Language Lesson",
+      "description": "A collection of bite-sized learning experiments built with Gemini.",
+      "url": "https://labs.google/lll/en"
+    },
+    "google-illuminate": {
+      "title": "Google Illuminate",
+      "description": "Transform your content into engaging AI‑generated audio discussions",
+      "url": "https://illuminate.google.com/explore?pli=1"
+    },
+    "google-notebooklm": {
+      "title": "Google NotebookLM",
+      "description": "A research and note-taking online tool developed by Google Labs that uses artificial intelligence (AI), specifically Google Gemini, to assist users in interacting with their documents.",
+      "url": "https://notebooklm.google/"
+    }
+  },
+  "exportDate": "2025-05-24T13:56:51.750Z",
+  "version": "1.0"
+}
