@@ -157,7 +157,12 @@ function connectWebSocket() {
     // Update WebSocket connection URL to work with Azure
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`; // Add /ws path for Azure routing
+    
+    // Check if we're in development or have a custom WebSocket path
+    const wsPath = window.WEBSOCKET_PATH || '/ws';
+    const wsUrl = `${protocol}//${host}${wsPath}`;
+    
+    debugLog(`Attempting WebSocket connection to: ${wsUrl}`);
     
     try {
         ws = new WebSocket(wsUrl);

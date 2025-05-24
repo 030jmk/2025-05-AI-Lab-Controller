@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -332,6 +333,30 @@ function broadcastToSeed() {
 function generateClientId() {
     return Math.random().toString(36).substr(2, 9);
 }
+
+// Add route handler for screen numbers before starting server
+app.get('/:number(\\d+)', (req, res) => {
+    const screenNumber = parseInt(req.params.number);
+    
+    fs.readFile(path.join(__dirname, 'index.html'), 'utf8', (err, data) => {
+        if (err) {
+            res.status(500).send('Error loading index.html');
+            return;
+        }
+        
+        // Inject both the screen number and WebSocket configuration
+        const modifiedHtml = data.replace(
+            '</head>',
+            `<script>
+                window.autoScreenNumber = ${screenNumber};
+                // Allow WebSocket path to be configured via environment
+                window.WEBSOCKET_PATH = '${process.env.WEBSOCKET_PATH || '/ws'}';
+            </script></head>`
+        );
+        
+        res.send(modifiedHtml);
+    });
+});
 
 // Start server
 server.listen(port, () => {
