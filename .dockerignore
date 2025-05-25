@@ -42,3 +42,7 @@ build
 # Azure specific files that shouldn't be in the container
 *.zip
 .deployment
+
+#
+Dockerfile
+.dockerignore
