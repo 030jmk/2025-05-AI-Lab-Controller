@@ -1,0 +1,51 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - ai-lab-test
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: https://trailab.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_747a2b46f4e143af843b5afe84b88761 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_be1e632ad9a84804b1e6befcf2b7d223 }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: trailab.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_747a2b46f4e143af843b5afe84b88761 }}/ai-lab-controller:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'ai-lab-test'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_029e911ee68446a992e99cc18bc87455 }}
+        images: 'trailab.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_747a2b46f4e143af843b5afe84b88761 }}/ai-lab-controller:${{ github.sha }}'
