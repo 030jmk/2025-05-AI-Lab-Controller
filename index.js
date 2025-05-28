@@ -405,11 +405,12 @@ function selectPreset(presetId) {
 function displayPreset(presetName, demosList) {
     if (!screenNumber) return;
     
-    const assignedDemo = demosList.find(demo => 
+    // Find all demos assigned to this screen
+    const assignedDemos = demosList.filter(demo => 
         !demo.screenNumber || demo.screenNumber === screenNumber
     );
     
-    if (!assignedDemo) return;
+    if (assignedDemos.length === 0) return;
     
     const demoContent = document.getElementById('demoContent');
     if (!demoContent) return;
@@ -417,55 +418,71 @@ function displayPreset(presetName, demosList) {
     // Remove waiting state
     demoContent.classList.remove('waiting-state');
     
-    // Update content
-    const demoTitle = document.getElementById('demoTitle');
-    const demoDescription = document.getElementById('demoDescription');
-    const demoCard = document.getElementById('demoCard');
-    
-    if (demoTitle) demoTitle.textContent = assignedDemo.title;
-    if (demoDescription) demoDescription.textContent = assignedDemo.description;
+    // Clear existing demo cards
+    const demoCards = demoContent.querySelector('.demo-cards');
+    if (demoCards) {
+        demoCards.innerHTML = '';
+        
+        // Create a card for each assigned demo
+        assignedDemos.forEach(demo => {
+            const card = document.createElement('div');
+            card.className = 'demo-card';
+            card.innerHTML = `
+                <div class="demo-title">${demo.title}</div>
+                <div class="demo-description">${demo.description}</div>
+            `;
+            
+            // Make card clickable
+            card.onclick = () => {
+                debugLog('Demo card clicked: ' + demo.title);
+                window.open(demo.url, '_blank');
+            };
+            
+            demoCards.appendChild(card);
+        });
+    }
     
     // Remove any existing individual demo badge
     const existingBadge = demoContent.querySelector('.individual-demo-badge');
     if (existingBadge) existingBadge.remove();
-    
-    // Make clickable
-    if (demoCard) {
-        demoCard.onclick = () => {
-            debugLog('Demo card clicked: ' + assignedDemo.title);
-            window.open(assignedDemo.url, '_blank');
-        };
-    }
 }
 
+// Update individual demo display to match new structure
 function displayIndividualDemo(demo) {
     const demoContent = document.getElementById('demoContent');
-    const demoCard = document.getElementById('demoCard');
-    const demoTitle = document.getElementById('demoTitle');
-    const demoDescription = document.getElementById('demoDescription');
+    if (!demoContent) return;
     
-    if (demoContent && demoCard && demoTitle && demoDescription) {
-        // Remove waiting state
-        demoContent.classList.remove('waiting-state');
+    // Remove waiting state
+    demoContent.classList.remove('waiting-state');
+    
+    // Clear existing demo cards
+    const demoCards = demoContent.querySelector('.demo-cards');
+    if (demoCards) {
+        demoCards.innerHTML = '';
+        
+        const card = document.createElement('div');
+        card.className = 'demo-card';
+        card.innerHTML = `
+            <div class="demo-title">${demo.title}</div>
+            <div class="demo-description">${demo.description}</div>
+        `;
+        
+        // Make card clickable
+        card.onclick = () => {
+            debugLog('Individual demo card clicked: ' + demo.title);
+            window.open(demo.url, '_blank');
+        };
+        
+        demoCards.appendChild(card);
         
         // Add individual demo badge
         let badge = demoContent.querySelector('.individual-demo-badge');
         if (!badge) {
             badge = document.createElement('div');
             badge.className = 'individual-demo-badge';
-            demoContent.insertBefore(badge, demoCard);
+            demoContent.insertBefore(badge, demoCards);
         }
         badge.textContent = '⚡ Individual Demo';
-        
-        // Update content
-        demoTitle.textContent = demo.title;
-        demoDescription.textContent = demo.description;
-        
-        // Make clickable
-        demoCard.onclick = function() {
-            debugLog('Individual demo card clicked: ' + demo.title);
-            window.open(demo.url, '_blank');
-        };
     }
 }
 

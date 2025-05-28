@@ -224,19 +224,26 @@ function handleSelectPreset(clientId, presetName, demos) {
     console.log(`Seed client ${clientId} selected preset: ${presetName}`);
     currentPreset = { name: presetName, demos: demos };
     
-    // Send demos to all peer clients
+    // First send back to seed client to confirm selection
+    client.ws.send(JSON.stringify({
+        type: 'presetSelected',
+        preset: presetName,
+        demos: demos
+    }));
+    
+    // Then send to all peer clients
     clients.forEach((clientInfo, peerId) => {
         if (clientInfo.mode === 'peer' && 
             clientInfo.screenNumber && 
             clientInfo.ws.readyState === WebSocket.OPEN) {
             
-            // Find demo assigned to this screen
-            const assignedDemo = demos.find(d => d.screenNumber === clientInfo.screenNumber) || demos[0];
-            if (assignedDemo) {
+            // Find all demos assigned to this screen
+            const assignedDemos = demos.filter(d => !d.screenNumber || d.screenNumber === clientInfo.screenNumber);
+            if (assignedDemos.length > 0) {
                 clientInfo.ws.send(JSON.stringify({
                     type: 'presetSelected',
                     preset: presetName,
-                    demos: [assignedDemo],
+                    demos: assignedDemos,
                     screenNumber: clientInfo.screenNumber
                 }));
             }
