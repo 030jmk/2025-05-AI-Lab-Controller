@@ -271,7 +271,14 @@ function handleServerMessage(data) {
             break;
             
         case 'screensList':
-            connectedScreensList = new Map(data.screens);
+            connectedScreensList = new Map();
+            data.screens.forEach(([num, info]) => {
+                const infos = Array.isArray(info) ? info : [info];
+                if (!connectedScreensList.has(num)) {
+                    connectedScreensList.set(num, []);
+                }
+                connectedScreensList.get(num).push(...infos);
+            });
             updateScreenGrid();
             break;
             
@@ -658,23 +665,14 @@ function cleanupOverlays() {
 function updateScreenGrid() {
     const screenGrid = document.getElementById('screenGrid');
     if (!screenGrid) return;
-    
+
     screenGrid.innerHTML = '';
-    
-    // Group clients by screen number
-    const screenGroups = new Map();
-    connectedScreensList.forEach((screenInfo, screenNumber) => {
-        if (!screenGroups.has(screenNumber)) {
-            screenGroups.set(screenNumber, { online: false, clients: [] });
-        }
-        screenGroups.get(screenNumber).clients.push(screenInfo);
-        if (screenInfo.online) {
-            screenGroups.get(screenNumber).online = true;
-        }
-    });
-    
-    // Create cards for each screen
-    screenGroups.forEach((screenData, screenNumber) => {
+
+    // Iterate over screen arrays
+    connectedScreensList.forEach((screenInfos, screenNumber) => {
+        const screenOnline = screenInfos.some(info => info.online);
+        const screenData = { online: screenOnline, clients: screenInfos };
+
         const card = document.createElement('div');
         card.className = `screen-card ${screenData.online ? 'online' : 'offline'}`;
         
