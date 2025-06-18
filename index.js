@@ -17,6 +17,23 @@ let connectedScreensList = new Map();
 let selectedPresetId = null;
 let modePanelTimeout = null;
 let reconnectTimeout = null;
+let wakeLock = null;
+
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                debugLog('Wake Lock released');
+            });
+            debugLog('Wake Lock acquired');
+        } catch (err) {
+            console.error('Wake Lock error:', err);
+        }
+    } else {
+        debugLog('Wake Lock API not supported');
+    }
+}
 
 // Data storage
 let presets = JSON.parse(localStorage.getItem('labPresets')) || getDefaultPresets();
@@ -951,6 +968,15 @@ function registerScreen(number) {
 // Set up all event listeners after DOM is loaded
 function setupEventListeners() {
     debugLog('Setting up event listeners');
+
+    // Request wake lock on first user interaction
+    const wakeLockHandler = () => {
+        if (!wakeLock) {
+            requestWakeLock();
+        }
+        document.removeEventListener('click', wakeLockHandler);
+    };
+    document.addEventListener('click', wakeLockHandler, { once: true });
     
     // Connection indicator
     connectionIndicator.addEventListener('click', function(e) {
@@ -1160,9 +1186,12 @@ function validateImportedData(config) {
 // Initialize function to set up everything
 function init() {
     debugLog('Initializing application');
-    
+
     // Set up event listeners
     setupEventListeners();
+
+    // Request screen wake lock
+    requestWakeLock();
     
     // Connect to WebSocket
     connectWebSocket();
@@ -1206,9 +1235,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Handle page visibility changes
 document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && ws && ws.readyState === WebSocket.CLOSED) {
-        debugLog('Page became visible, checking connection');
-        connectionAttempts = 0;
-        connectWebSocket();
+    if (!document.hidden) {
+        if (ws && ws.readyState === WebSocket.CLOSED) {
+            debugLog('Page became visible, checking connection');
+            connectionAttempts = 0;
+            connectWebSocket();
+        }
+        if (wakeLock !== null) {
+            requestWakeLock();
+        }
+    } else if (wakeLock !== null) {
+        wakeLock.release()
+            .then(() => {
+                debugLog('Wake Lock released due to page hide');
+            })
+            .catch(err => {
+                console.error('Wake Lock release failed:', err);
+            });
+        wakeLock = null;
     }
 });
