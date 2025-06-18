@@ -5,11 +5,15 @@
       "demos": [
         {
           "demoId": "harvey-legal-assistant",
-          "screenNumber": 5
+          "screenNumber": 6
         },
         {
           "demoId": "factory-intelligence-2-0",
-          "screenNumber": 4
+          "screenNumber": 3
+        },
+        {
+          "demoId": "factory-intelligence",
+          "screenNumber": 3
         },
         {
           "demoId": "information-assistant",
@@ -17,11 +21,43 @@
         },
         {
           "demoId": "forecast-plus-dashboard",
-          "screenNumber": 2
+          "screenNumber": 5
         },
         {
           "demoId": "ai4business",
-          "screenNumber": 3
+          "screenNumber": 4
+        },
+        {
+          "demoId": "project-sophia",
+          "screenNumber": 5
+        },
+        {
+          "demoId": "copilot-mediaagent",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "google-notebooklm",
+          "screenNumber": 2
+        },
+        {
+          "demoId": "information-assistant--assistant",
+          "screenNumber": 1
+        },
+        {
+          "demoId": "information-assistant--document-summarization",
+          "screenNumber": 1
+        },
+        {
+          "demoId": "contract-management-system",
+          "screenNumber": 6
+        },
+        {
+          "demoId": "nextgen-cost-insight",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "osint-risk-search-engine",
+          "screenNumber": 4
         }
       ]
     },
@@ -34,11 +70,11 @@
         },
         {
           "demoId": "google-jules",
-          "screenNumber": null
+          "screenNumber": 1
         },
         {
           "demoId": "google-stitch",
-          "screenNumber": null
+          "screenNumber": 2
         },
         {
           "demoId": "google-arts-culture-national-gallery-mixtape",
@@ -59,6 +95,48 @@
         {
           "demoId": "google-notebooklm",
           "screenNumber": 1
+        }
+      ]
+    },
+    "station-titles-preset": {
+      "name": "Station Titles Preset",
+      "demos": [
+        {
+          "demoId": "sat---ve-pazarlama-uygulamalar-",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "tedarik-zinciri-ve--retim-uygulamalar-",
+          "screenNumber": 3
+        },
+        {
+          "demoId": "i-nsan-kaynaklar--ve-hukuk-uygulamalar-",
+          "screenNumber": 6
+        },
+        {
+          "demoId": "ceo-ofisi-uygulamalar-",
+          "screenNumber": 1
+        },
+        {
+          "demoId": "finans-uygulamalar-",
+          "screenNumber": 5
+        }
+      ]
+    },
+    "prototypes-2025-05": {
+      "name": "Prototypes 2025-05",
+      "demos": [
+        {
+          "demoId": "google-notebooklm",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "real-time-translations",
+          "screenNumber": 4
+        },
+        {
+          "demoId": "osint-risk-search-engine",
+          "screenNumber": 4
         }
       ]
     }
@@ -168,8 +246,93 @@
       "title": "Google NotebookLM",
       "description": "A research and note-taking online tool developed by Google Labs that uses artificial intelligence (AI), specifically Google Gemini, to assist users in interacting with their documents.",
       "url": "https://notebooklm.google/"
+    },
+    "sat---ve-pazarlama-uygulamalar-": {
+      "title": "Satış ve Pazarlama Uygulamaları",
+      "description": "Sales and Marketing Applications",
+      "url": "https://www.pwc.com.tr/ai"
+    },
+    "tedarik-zinciri-ve--retim-uygulamalar-": {
+      "title": "Tedarik Zinciri ve Üretim Uygulamaları",
+      "description": "Supply Chain and Manufacturing Applications",
+      "url": "https://www.pwc.com.tr/ai"
+    },
+    "i-nsan-kaynaklar--ve-hukuk-uygulamalar-": {
+      "title": "İnsan Kaynakları ve Hukuk Uygulamaları",
+      "description": "Human Resources and Legal Practices",
+      "url": "https://www.pwc.com.tr/ai"
+    },
+    "ceo-ofisi-uygulamalar-": {
+      "title": "CEO Ofisi Uygulamaları",
+      "description": "CEO Office Applications",
+      "url": "https://www.pwc.com.tr/ai"
+    },
+    "finans-uygulamalar-": {
+      "title": "Finans Uygulamaları",
+      "description": "Finance Applications",
+      "url": "https://www.pwc.com.tr/ai"
+    },
+    "information-assistant--assistant": {
+      "title": "Information Assistant: Assistant",
+      "description": "An AI assistant that is always by your side.",
+      "url": "https://pwctrinformationassistant/asistan"
+    },
+    "information-assistant--document-summarization": {
+      "title": "Information Assistant: Document Summarization",
+      "description": "Summarize information contained in documents and get insights via prompts.",
+      "url": "https://pwctrinformationassistant/dokuman-sohbeti"
+    },
+    "information-assistant--hr-and-accounting-insights": {
+      "title": "Information Assistant: HR and Accounting Insights",
+      "description": "Get HR and Accounting related answers based on your organization's documentation.",
+      "url": "https://pwctrinformationassistant/ic-destek-asistani"
+    },
+    "contract-management-system": {
+      "title": "Contract Management System",
+      "description": "A look inside PwC Digital Services, Inc.",
+      "url": "http://tr-ankapptwv017:3004/sozlesmeler/132456-sozlesme"
+    },
+    "consumer-market-ai-forecasting": {
+      "title": "Consumer Market AI Forecasting",
+      "description": "Assess predictive model accuracy by comparing forecasted trends with actual.",
+      "url": "https://us.workbench.pwc.com/report-viewer/shared/vmltvvewee"
+    },
+    "financial-forecasting": {
+      "title": "Financial Forecasting",
+      "description": "Identify leading indicators that anticipate future business outcomes.",
+      "url": "https://us.workbench.pwc.com/report-viewer/shared/1d782w83ae"
+    },
+    "cashflow-forecasting": {
+      "title": "Cashflow Forecasting",
+      "description": "Identify cash inflows, outflows and net cash flows across the business.",
+      "url": "https://us.workbench.pwc.com/report-viewer/shared/bvdqlp63qw"
+    },
+    "nextgen-cost-insight": {
+      "title": "NextGen Cost Insight",
+      "description": "Insights with guided analytics to help manage demand, improve efficiency, and streamline capacity.",
+      "url": "https://us.workbench.pwc.com/report-viewer/shared/d8i6qyr6ta"
+    },
+    "smart-financial-reporting": {
+      "title": "Smart Financial Reporting",
+      "description": "CoPilot-enabled PowerBI Dashboards",
+      "url": "https://app.powerbi.com/groups/me/reports/2bbc74b1-6a8b-4bfe-8b16-69a55a975587/4afe6413e436bb3b2ee0?experience=power-bi"
+    },
+    "real-time-translations": {
+      "title": "Real-Time Translations",
+      "description": "Web-based solution making use of Azure AI capabilities.",
+      "url": "https://livespeechtranslation.z6.web.core.windows.net/"
+    },
+    "osint-risk-search-engine": {
+      "title": "OSINT Risk Search Engine",
+      "description": "Streamlining the risk assessments processes with customized search engines.",
+      "url": "https://risksearchengine.z6.web.core.windows.net/#gsc.tab=0&gsc.sort="
+    },
+    "break-it-til-you-make-it": {
+      "title": "Break It Til you Make It",
+      "description": "audnfuosefusneviosehf oaeufho oefse f soiefj sefoi sejf",
+      "url": "https://google.com"
     }
   },
-  "exportDate": "2025-05-24T13:56:51.750Z",
+  "exportDate": "2025-06-10T12:07:36.367Z",
   "version": "1.0"
 }
