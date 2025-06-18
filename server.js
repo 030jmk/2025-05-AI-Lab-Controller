@@ -7,11 +7,43 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
+// Load shared presets/demos from disk
+const dataPath = path.join(__dirname, 'data', 'presets.json');
+let presetsData = { presets: {}, demos: {} };
+try {
+    if (fs.existsSync(dataPath)) {
+        presetsData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    }
+} catch (err) {
+    console.error('Failed to load presets data:', err);
+}
+
+// Body parser for REST endpoints
+app.use(express.json());
+
 // Serve static files
 app.use(express.static(__dirname));
 
 // Add support for Azure's port configuration
 const port = process.env.PORT || 3000;
+
+// REST endpoints for presets/demos
+app.get('/api/presets', (req, res) => {
+    res.json(presetsData);
+});
+
+app.post('/api/presets', (req, res) => {
+    presetsData = req.body;
+    fs.mkdirSync(path.dirname(dataPath), { recursive: true });
+    fs.writeFile(dataPath, JSON.stringify(presetsData, null, 2), err => {
+        if (err) {
+            console.error('Error writing presets file:', err);
+            return res.status(500).json({ status: 'error' });
+        }
+        broadcastPresets();
+        res.json({ status: 'ok' });
+    });
+});
 
 // Create WebSocket server with path for Azure routing
 const wss = new WebSocket.Server({
@@ -345,6 +377,15 @@ function broadcastScreensList() {
         type: 'screensList',
         screens: screensList
     }));
+}
+
+function broadcastPresets() {
+    const message = JSON.stringify({ type: 'presetsUpdated', data: presetsData });
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
 }
 
 function broadcastToSeed() {
