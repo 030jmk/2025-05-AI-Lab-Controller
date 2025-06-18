@@ -35,9 +35,9 @@ async function requestWakeLock() {
     }
 }
 
-// Data storage
-let presets = JSON.parse(localStorage.getItem('labPresets')) || getDefaultPresets();
-let demos = JSON.parse(localStorage.getItem('labDemos')) || getDefaultDemos();
+// Data storage loaded from the server
+let presets = {};
+let demos = {};
 
 // DOM elements - will be set after DOM loads
 let connectionIndicator, modePanel, seedBtn, peerBtn, adminBtn, navbar,
@@ -140,6 +140,25 @@ function getDefaultDemos() {
             url: 'https://example.com/retail-demo4'
         }
     };
+}
+
+// Fetch presets and demos from the server
+async function loadServerData() {
+    try {
+        const res = await fetch('/api/presets');
+        if (res.ok) {
+            const config = await res.json();
+            presets = config.presets || {};
+            demos = config.demos || {};
+        } else {
+            presets = getDefaultPresets();
+            demos = getDefaultDemos();
+        }
+    } catch (err) {
+        console.error('Failed to load presets from server:', err);
+        presets = getDefaultPresets();
+        demos = getDefaultDemos();
+    }
 }
 
 // Mode panel visibility management
@@ -314,6 +333,13 @@ function handleServerMessage(data) {
                 connectedScreensList.get(num).push(...infos);
             });
             updateScreenGrid();
+            break;
+
+        case 'presetsUpdated':
+            presets = data.data.presets || {};
+            demos = data.data.demos || {};
+            populatePresets();
+            populateAdminPanel();
             break;
 
         case 'ping':
@@ -837,9 +863,16 @@ function populateDemoList() {
     });
 }
 
-function saveData() {
-    localStorage.setItem('labPresets', JSON.stringify(presets));
-    localStorage.setItem('labDemos', JSON.stringify(demos));
+async function saveData() {
+    try {
+        await fetch('/api/presets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ presets, demos })
+        });
+    } catch (err) {
+        console.error('Failed to save presets:', err);
+    }
 }
 
 function createPreset() {
@@ -985,11 +1018,10 @@ function importConfiguration() {
 function resetAllData() {
     if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
         if (confirm('This will delete all your custom presets and demos. Are you absolutely sure?')) {
-            localStorage.removeItem('labPresets');
-            localStorage.removeItem('labDemos');
             presets = getDefaultPresets();
             demos = getDefaultDemos();
             populateAdminPanel();
+            saveData();
             debugLog('Data reset to defaults');
             alert('All data has been reset to defaults.');
         }
@@ -1240,9 +1272,11 @@ function init() {
     // Connect to WebSocket
     connectWebSocket();
     
-    // Populate initial data
-    populatePresets();
-    populateAdminPanel();
+    // Load presets/demos from server then populate UI
+    loadServerData().then(() => {
+        populatePresets();
+        populateAdminPanel();
+    });
     
     // Set up periodic connection check
     setInterval(() => {
