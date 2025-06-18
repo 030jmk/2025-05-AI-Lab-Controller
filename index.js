@@ -40,7 +40,11 @@ let presets = JSON.parse(localStorage.getItem('labPresets')) || getDefaultPreset
 let demos = JSON.parse(localStorage.getItem('labDemos')) || getDefaultDemos();
 
 // DOM elements - will be set after DOM loads
-let connectionIndicator, modePanel, seedBtn, peerBtn, adminBtn, navbar, seedContent, peerDisplay, adminContent;
+let connectionIndicator, modePanel, seedBtn, peerBtn, adminBtn, navbar,
+    seedContent, peerDisplay, adminContent,
+    loginOverlay, loginPanel, loginUsername, loginPassword, loginSubmitBtn;
+
+let seedAuthenticated = false;
 
 function getDefaultPresets() {
     return {
@@ -388,6 +392,20 @@ function showRegistrationPanel() {
 function hideRegistrationPanel() {
     const overlay = document.getElementById('registrationOverlay');
     const panel = document.getElementById('registrationPanel');
+    if (overlay) overlay.classList.add('hidden');
+    if (panel) panel.classList.add('hidden');
+}
+
+function showSeedLoginPanel() {
+    const overlay = document.getElementById('loginOverlay');
+    const panel = document.getElementById('loginPanel');
+    if (overlay) overlay.classList.remove('hidden');
+    if (panel) panel.classList.remove('hidden');
+}
+
+function hideSeedLoginPanel() {
+    const overlay = document.getElementById('loginOverlay');
+    const panel = document.getElementById('loginPanel');
     if (overlay) overlay.classList.add('hidden');
     if (panel) panel.classList.add('hidden');
 }
@@ -1051,7 +1069,11 @@ function setupEventListeners() {
     seedBtn.addEventListener('click', function(e) {
         e.preventDefault();
         debugLog('Seed button clicked');
-        switchMode('seed');
+        if (seedAuthenticated) {
+            switchMode('seed');
+        } else {
+            showSeedLoginPanel();
+        }
     });
     peerBtn.addEventListener('click', function(e) {
         e.preventDefault();
@@ -1211,7 +1233,7 @@ function init() {
 // Run initialization after DOM content is loaded
 document.addEventListener('DOMContentLoaded', function() {
     debugLog('DOM fully loaded and parsed');
-    
+
     // Cache DOM elements
     connectionIndicator = document.getElementById('connectionIndicator');
     modePanel = document.getElementById('modePanel');
@@ -1222,6 +1244,27 @@ document.addEventListener('DOMContentLoaded', function() {
     seedContent = document.getElementById('seedContent');
     peerDisplay = document.getElementById('peerDisplay');
     adminContent = document.getElementById('adminContent');
+    loginOverlay = document.getElementById('loginOverlay');
+    loginPanel = document.getElementById('loginPanel');
+    loginUsername = document.getElementById('loginUsername');
+    loginPassword = document.getElementById('loginPassword');
+    loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    seedAuthenticated = sessionStorage.getItem('seedAuthenticated') === 'true';
+
+    if (loginSubmitBtn) {
+        loginSubmitBtn.addEventListener('click', function() {
+            const user = loginUsername ? loginUsername.value : '';
+            const pass = loginPassword ? loginPassword.value : '';
+            if (user === 'admin' && pass === 'kopankiewicz') {
+                seedAuthenticated = true;
+                sessionStorage.setItem('seedAuthenticated', 'true');
+                hideSeedLoginPanel();
+                switchMode('seed');
+            } else {
+                alert('Invalid credentials');
+            }
+        });
+    }
     
     // Update screen number input if auto number is present
     if (window.autoScreenNumber) {
