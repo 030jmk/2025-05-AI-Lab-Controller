@@ -317,15 +317,17 @@ function broadcastScreensList() {
     
     const screensList = [];
     registeredScreens.forEach((clientIds, screenNumber) => {
+        const infoList = [];
         clientIds.forEach(clientId => {
             const client = clients.get(clientId);
-            screensList.push([screenNumber, {
+            infoList.push({
                 online: client && client.ws.readyState === WebSocket.OPEN,
                 clientId: clientId
-            }]);
+            });
         });
+        screensList.push([screenNumber, infoList]);
     });
-    
+
     seed.ws.send(JSON.stringify({
         type: 'screensList',
         screens: screensList
