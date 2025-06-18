@@ -14,10 +14,19 @@ app.use(express.static(__dirname));
 const port = process.env.PORT || 3000;
 
 // Create WebSocket server with path for Azure routing
-const wss = new WebSocket.Server({ 
+const wss = new WebSocket.Server({
     server: server,
     path: '/ws' // Add explicit path for Azure routing
 });
+
+// Periodically ping connected clients to keep connections alive
+setInterval(() => {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'ping' }));
+        }
+    });
+}, 30000);
 
 // Track connected clients with screen numbers
 const clients = new Map();
@@ -118,6 +127,10 @@ function handleMessage(clientId, data) {
         case 'ping':
             // Respond to ping with pong
             client.ws.send(JSON.stringify({ type: 'pong' }));
+            break;
+
+        case 'pong':
+            // Client responded to our ping
             break;
             
         default:

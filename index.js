@@ -10,13 +10,13 @@ let currentMode = 'peer';
 let screenNumber = null;
 let ws = null;
 let connectionAttempts = 0;
-let maxReconnectAttempts = 5;
 let connectedPeers = 0;
 let registeredScreens = 0;
 let connectedScreensList = new Map();
 let selectedPresetId = null;
 let modePanelTimeout = null;
 let reconnectTimeout = null;
+let pingInterval = null;
 let wakeLock = null;
 
 async function requestWakeLock() {
@@ -167,6 +167,21 @@ function hideModePanel() {
     }
 }
 
+// Keep-alive ping management
+function startPing() {
+    if (pingInterval) clearInterval(pingInterval);
+    pingInterval = setInterval(() => {
+        sendMessage({ type: 'ping' });
+    }, 30000);
+}
+
+function stopPing() {
+    if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+    }
+}
+
 // WebSocket connection management
 function connectWebSocket() {
     // Clear any existing reconnect timeout
@@ -192,6 +207,7 @@ function connectWebSocket() {
             debugLog('Connected to WebSocket server');
             updateConnectionStatus(true);
             connectionAttempts = 0;
+            startPing();
             
             // Auto-register screen number if it was provided in URL
             if (window.autoScreenNumber && !screenNumber) {
@@ -221,21 +237,18 @@ function connectWebSocket() {
         ws.onclose = function() {
             debugLog('WebSocket connection closed');
             updateConnectionStatus(false);
+            stopPing();
             
-            // Attempt to reconnect
-            if (connectionAttempts < maxReconnectAttempts) {
-                connectionAttempts++;
-                debugLog(`Reconnection attempt ${connectionAttempts}/${maxReconnectAttempts}`);
-                reconnectTimeout = setTimeout(connectWebSocket, 2000);
-            } else {
-                debugLog('Max reconnection attempts reached');
-                showReconnectButton();
-            }
+            // Attempt to reconnect indefinitely
+            connectionAttempts++;
+            debugLog(`Reconnection attempt ${connectionAttempts}`);
+            reconnectTimeout = setTimeout(connectWebSocket, 2000);
         };
         
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
             updateConnectionStatus(false);
+            stopPing();
         };
         
     } catch (error) {
@@ -301,6 +314,15 @@ function handleServerMessage(data) {
                 connectedScreensList.get(num).push(...infos);
             });
             updateScreenGrid();
+            break;
+
+        case 'ping':
+            // Respond to server ping
+            sendMessage({ type: 'pong' });
+            break;
+
+        case 'pong':
+            debugLog('Received pong from server');
             break;
             
         case 'registrationConfirmed':
