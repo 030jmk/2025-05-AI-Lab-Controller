@@ -14,6 +14,9 @@ let connectedPeers = 0;
 let registeredScreens = 0;
 let connectedScreensList = new Map();
 let selectedPresetId = null;
+let presetViewMode = 'grid';
+let presetSortAlpha = false;
+let draggedPresetId = null;
 let modePanelTimeout = null;
 let reconnectTimeout = null;
 let pingInterval = null;
@@ -37,6 +40,7 @@ async function requestWakeLock() {
 
 // Data storage loaded from the server
 let presets = {};
+let presetOrder = [];
 let demos = {};
 
 // DOM elements - will be set after DOM loads
@@ -149,15 +153,18 @@ async function loadServerData() {
         if (res.ok) {
             const config = await res.json();
             presets = config.presets || {};
+            presetOrder = config.presetOrder || Object.keys(presets);
             demos = config.demos || {};
         } else {
             presets = getDefaultPresets();
             demos = getDefaultDemos();
+            presetOrder = Object.keys(presets);
         }
     } catch (err) {
         console.error('Failed to load presets from server:', err);
         presets = getDefaultPresets();
         demos = getDefaultDemos();
+        presetOrder = Object.keys(presets);
     }
 }
 
@@ -579,15 +586,26 @@ function displayIndividualDemo(demo) {
 function populatePresets() {
     // Clean up any existing overlays first
     cleanupOverlays();
-    
+
     const presetGrid = document.getElementById('presetGrid');
     if (!presetGrid) return;
-    
+
     presetGrid.innerHTML = '';
-    
-    Object.entries(presets).forEach(([id, preset]) => {
+    if (presetOrder.length === 0) {
+        presetOrder = Object.keys(presets);
+    }
+    presetGrid.classList.toggle('list-view', presetViewMode === 'list');
+
+    let entries = presetOrder.map(id => [id, presets[id]]).filter(e => e[1]);
+    if (presetSortAlpha) {
+        entries.sort((a, b) => a[1].name.localeCompare(b[1].name));
+    }
+
+    entries.forEach(([id, preset]) => {
         const card = document.createElement('div');
         card.className = `preset-card ${selectedPresetId === id ? 'selected' : ''}`;
+        card.draggable = true;
+        card.dataset.pid = id;
         card.innerHTML = `
             <h3>${preset.name}</h3>
             <div class="demo-count">${preset.demos.length} demos</div>
@@ -608,7 +626,31 @@ function populatePresets() {
             e.stopPropagation();
             openPresetEditor(id);
         });
-        
+
+        card.addEventListener('dragstart', () => {
+            draggedPresetId = id;
+            card.classList.add('dragging');
+        });
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+        });
+        card.addEventListener('dragover', e => {
+            e.preventDefault();
+        });
+        card.addEventListener('drop', e => {
+            e.preventDefault();
+            if (draggedPresetId && draggedPresetId !== id) {
+                const from = presetOrder.indexOf(draggedPresetId);
+                const to = presetOrder.indexOf(id);
+                if (from !== -1 && to !== -1) {
+                    presetOrder.splice(from, 1);
+                    presetOrder.splice(to, 0, draggedPresetId);
+                    saveData();
+                    populatePresets();
+                }
+            }
+        });
+
         presetGrid.appendChild(card);
     });
 }
@@ -675,6 +717,7 @@ function openPresetEditor(presetId) {
     panel.querySelector('#deletePresetBtn').addEventListener('click', () => {
         if (confirm(`Are you sure you want to delete the preset "${preset.name}"?`)) {
             delete presets[presetId];
+            presetOrder = presetOrder.filter(id => id !== presetId);
             saveData();
             populatePresets();
             closeEditor(panel, overlay);
@@ -716,11 +759,23 @@ function savePresetChanges(presetId, panel) {
         return;
     }
     
-    // Update preset
-    presets[presetId] = {
-        name: newName,
-        demos: demoAssignments
-    };
+    const newId = newName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    if (newId !== presetId) {
+        if (presets[newId]) {
+            alert('A preset with this name already exists');
+            return;
+        }
+        delete presets[presetId];
+        presets[newId] = { name: newName, demos: demoAssignments };
+        const idx = presetOrder.indexOf(presetId);
+        if (idx !== -1) presetOrder[idx] = newId;
+        presetId = newId;
+    } else {
+        presets[presetId] = {
+            name: newName,
+            demos: demoAssignments
+        };
+    }
     
     saveData();
     populatePresets();
@@ -736,9 +791,98 @@ function closeEditor(panel, overlay) {
     }
 }
 
+function openDemoEditor(demoId) {
+    const demo = demos[demoId];
+    if (!demo) return;
+
+    cleanupOverlays();
+
+    const panel = document.createElement('div');
+    panel.className = 'demo-edit-panel';
+    panel.innerHTML = `
+        <h3>Edit Demo: ${demo.title}</h3>
+        <div class="form-group">
+            <label>Title:</label>
+            <input type="text" id="editDemoTitle" value="${demo.title}">
+        </div>
+        <div class="form-group">
+            <label>Description:</label>
+            <textarea id="editDemoDescription" rows="3">${demo.description}</textarea>
+        </div>
+        <div class="form-group">
+            <label>URL:</label>
+            <input type="text" id="editDemoUrl" value="${demo.url}">
+        </div>
+        <button class="btn btn-primary" id="saveDemoBtn">Save Changes</button>
+        <button class="btn btn-secondary" id="cancelDemoBtn">Cancel</button>
+    `;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.id = 'demoEditOverlay';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(panel);
+
+    panel.querySelector('#saveDemoBtn').addEventListener('click', () => {
+        saveDemoChanges(demoId, panel);
+    });
+    panel.querySelector('#cancelDemoBtn').addEventListener('click', () => {
+        closeEditor(panel, overlay);
+    });
+    overlay.addEventListener('click', () => {
+        closeEditor(panel, overlay);
+    });
+}
+
+function saveDemoChanges(demoId, panel) {
+    const title = panel.querySelector('#editDemoTitle').value.trim();
+    const desc = panel.querySelector('#editDemoDescription').value.trim();
+    const url = panel.querySelector('#editDemoUrl').value.trim();
+
+    if (!title || !desc || !url) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    try {
+        new URL(url);
+    } catch (e) {
+        alert('Please enter a valid URL');
+        return;
+    }
+
+    const newId = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const updatedDemo = { title: title, description: desc, url: url };
+
+    if (newId !== demoId) {
+        if (demos[newId]) {
+            alert('A demo with this title already exists.');
+            return;
+        }
+        delete demos[demoId];
+        demos[newId] = updatedDemo;
+        Object.keys(presets).forEach(pid => {
+            presets[pid].demos = presets[pid].demos.map(d => {
+                if (typeof d === 'string') {
+                    return d === demoId ? newId : d;
+                } else {
+                    return d.demoId === demoId ? { ...d, demoId: newId } : d;
+                }
+            });
+        });
+    } else {
+        demos[demoId] = updatedDemo;
+    }
+
+    saveData();
+    populateAdminPanel();
+    closeEditor(panel, document.querySelector('#demoEditOverlay'));
+}
+
 function cleanupOverlays() {
     // Remove any orphaned overlays and edit panels
-    document.querySelectorAll('.overlay, .preset-edit-panel').forEach(el => {
+    document.querySelectorAll('.overlay, .preset-edit-panel, .demo-edit-panel').forEach(el => {
         if (el && el.parentNode) {
             el.remove();
         }
@@ -840,7 +984,7 @@ function populateDemoList() {
     Object.entries(demos).forEach(([id, demo]) => {
         const item = document.createElement('div');
         item.className = 'list-item';
-        
+
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn btn-danger btn-small';
         deleteBtn.textContent = 'Delete';
@@ -848,7 +992,15 @@ function populateDemoList() {
             debugLog('Delete demo clicked: ' + demo.title);
             deleteDemo(id);
         });
-        
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-secondary btn-small';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', function() {
+            debugLog('Edit demo clicked: ' + demo.title);
+            openDemoEditor(id);
+        });
+
         item.innerHTML = `
             <div class="list-item-info">
                 <h4>${demo.title}</h4>
@@ -857,8 +1009,10 @@ function populateDemoList() {
             </div>
             <div class="list-item-actions"></div>
         `;
-        
-        item.querySelector('.list-item-actions').appendChild(deleteBtn);
+
+        const actions = item.querySelector('.list-item-actions');
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
         list.appendChild(item);
     });
 }
@@ -868,7 +1022,7 @@ async function saveData() {
         await fetch('/api/presets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ presets, demos })
+            body: JSON.stringify({ presets, demos, presetOrder })
         });
     } catch (err) {
         console.error('Failed to save presets:', err);
@@ -906,11 +1060,15 @@ function createPreset() {
     }
     
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    if (presets[id]) {
+        alert('A preset with this name already exists');
+        return;
+    }
     presets[id] = {
         name: name,
         demos: demoAssignments
     };
-    
+    presetOrder.push(id);
     saveData();
     nameInput.value = '';
     document.querySelectorAll('#demoSelector input').forEach(cb => {
@@ -1186,6 +1344,8 @@ function setupEventListeners() {
     const importBtn = document.getElementById('importBtn');
     const resetBtn = document.getElementById('resetBtn');
     const importFile = document.getElementById('importFile');
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+    const sortAZBtn = document.getElementById('sortAZBtn');
     
     if (createPresetBtn) {
         createPresetBtn.addEventListener('click', createPreset);
@@ -1232,6 +1392,22 @@ function setupEventListeners() {
                 };
                 reader.readAsText(file);
             }
+        });
+    }
+
+    if (toggleViewBtn) {
+        toggleViewBtn.addEventListener('click', function() {
+            presetViewMode = presetViewMode === 'grid' ? 'list' : 'grid';
+            this.textContent = presetViewMode === 'grid' ? 'List View' : 'Grid View';
+            populatePresets();
+        });
+    }
+
+    if (sortAZBtn) {
+        sortAZBtn.addEventListener('click', function() {
+            presetSortAlpha = !presetSortAlpha;
+            this.classList.toggle('active', presetSortAlpha);
+            populatePresets();
         });
     }
 }

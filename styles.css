@@ -367,14 +367,35 @@ body {
     margin-top: 20px;
 }
 
+.preset-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.preset-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+.preset-grid.list-view .preset-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .preset-card {
     background: white;
     border-radius: 12px;
     padding: 25px;
-    cursor: pointer;
+    cursor: move;
     transition: all 0.3s ease;
     border: 2px solid #FFCDA8;
     position: relative;
+}
+
+.preset-card.dragging {
+    opacity: 0.5;
 }
 
 .preset-edit-btn {
@@ -399,7 +420,9 @@ body {
     background: #FE7C39;
 }
 
-.preset-edit-panel {
+
+.preset-edit-panel,
+.demo-edit-panel {
     position: fixed;
     top: 50%;
     left: 50%;
