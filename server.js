@@ -9,10 +9,11 @@ const server = http.createServer(app);
 
 // Load shared presets/demos from disk
 const dataPath = path.join(__dirname, 'data', 'presets.json');
-let presetsData = { presets: {}, demos: {} };
+let presetsData = { presets: {}, demos: {}, presetOrder: [] };
 try {
     if (fs.existsSync(dataPath)) {
         presetsData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        presetsData.presetOrder = presetsData.presetOrder || Object.keys(presetsData.presets || {});
     }
 } catch (err) {
     console.error('Failed to load presets data:', err);
